@@ -1,0 +1,330 @@
+---
+title: "apresentação"
+author: '238719'
+date: "2025-10-23"
+output:
+  beamer_presentation: default
+  slidy_presentation: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+
+# Carregar resultados da simulação
+resultados <- read.csv("resultados_50_anos.csv")
+
+# Calcular métricas para os slides
+taxa_inicial <- round(resultados$taxa_resposta[1] * 100, 1)
+taxa_final <- round(resultados$taxa_resposta[nrow(resultados)] * 100, 1)
+melhoramento <- round((mean(abs(resultados$vies_simples), na.rm = TRUE) - 
+                       mean(abs(resultados$vies_regressao), na.rm = TRUE)) / 
+                      mean(abs(resultados$vies_simples), na.rm = TRUE) * 100, 1)
+```
+
+## **Agenda**
+
+**Roteiro da Apresentação:**
+
+1. **Introdução** - Contexto e objetivos  
+2. **Metodologia** - Como foi a simulação    
+3. **Resultados** - Gráficos e análises  
+4. **Conclusões** - Principais achados  
+5. **Estimação de Variância** - Revolução computacional  
+6. **Amostras Não-Probabilísticas** - Novo paradigma  
+7. **Tendências Futuras** - Horizontes emergentes  
+8. **Recomendações** - Aplicações práticas  
+
+---
+
+## **Introdução – Amostragem em Crise e a Necessidade de Adaptação**
+
+**Contexto**: A amostragem em pesquisas (Survey Sampling) passou por uma transformação radical nas últimas cinco décadas (1973-2023).
+
+**O Problema Central**: A principal força motriz dessa mudança é o declínio dramático nas taxas de resposta, que compromete a validade e a precisão das estimativas baseadas em métodos tradicionais.
+
+**Objetivo do Artigo** (de Waal & Scholtus, 2023): Mapear as inovações estatísticas criadas para preservar a qualidade da pesquisa em um cenário de coleta cada vez mais desafiador.
+
+
+---
+
+
+## **Problema de Pesquisa: A Resposta Estatística à Não-Resposta**
+
+**Nossa Pergunta**: Como as novas metodologias de amostragem, especialmente o Model-Assisted Sampling, conseguiram mitigar o viés e manter a precisão das estimativas diante do declínio das taxas de resposta?
+
+**Metodologias em Foco**:  
+- Estimadores Auxiliados por Modelo (GREG): Uso de dados auxiliares para correção de viés.  
+- Métodos de Replicação (Bootstrap): A revolução computacional na estimação de variância.  
+- Amostras Não-Probabilísticas: Tendências e desafios futuros.  
+- Objetivo do Nosso Trabalho: Simular e comparar o desempenho do estimador GREG contra métodos tradicionais ao longo de 50 anos de crise na taxa de resposta.
+
+---
+
+## **Metodologia - O Cenário da Simulação de 50 anos (1973 - 2023)**
+
+1. **População Simulada:**
+* **`r (nrow(resultados) -1)` anos** analisados
+* **5.000 indivíduos** por ano
+
+2. **Variáveis de estudo**: $X$ (auxiliar) e $Y$ (interesse)
+* **Relação Modelada**: $Y$ foi gerada em função de $X$ (ex.: $Y \approx \beta_0 + \beta_1 X + \epsilon$), imitando uma regressão que justifica o uso do GREG.
+
+3. **Processo de Não-Resposta**:  
+**Declínio da Resposta**: A Taxa de Resposta decaiu de $\approx 70\%$ (1973) para $\approx 25\%$ (2023), conforme o cenário do artigo.  
+**Viés de Seleção**: A não-resposta foi simulada como Não-Resposta com Viés (Non-Response with Bias). A probabilidade de um indivíduo responder ($\phi_k$) foi definida para ser correlacionada com a variável de interesse $Y$.
+
+## **Metodologia – Os Estimadores em Comparação: Tradicional vs. Model-Assisted**
+1. **Estimador Tradicional (Média Simples - Horvitz-Thompson)**:  
+**Princípio**: Estima o total populacional usando apenas os dados da amostra respondente e o peso amostral inicial.
+
+**Fragilidade**: É altamente vulnerável ao viés da não-resposta. Se os respondentes não forem uma subamostra aleatória dos amostrados, a estimativa se torna enviesada.
+
+2. **Estimador Assistido por Modelo (GREG - Generalized Regression Estimator)**:
+**Princípio**: Utiliza a **Variável Auxiliar ($X$)** conhecida em $\mathcal{U}$ para modelar a relação com $Y$ e, então, ajustar o peso dos respondentes.
+**Fórmula (Conceito)**: $\hat{Y}_{GREG} = \sum_{k \in \mathcal{U}} \hat{Y}_k + \sum_{k \in \mathcal{R}} w_k (Y_k - \hat{Y}_k)$Ele calibra os pesos dos respondentes para que a sua distribuição de $X$ se ajuste à distribuição populacional de $X$.
+**Força**: Reduz drasticamente o viés da não-resposta, assumindo que o viés é explicado pela variável auxiliar $X$.
+**Métrica de Avaliação**:O desempenho foi medido pelo Viés Médio Absoluto  
+($\text{VMA} = |\hat{Y} - Y_{real}|$) em 50 anos de simulação.
+
+---
+
+## **Evolução da Taxa de Resposta**
+```{r}
+ggplot(resultados, aes(x = ano, y = taxa_resposta)) +
+  geom_line(color = "#E41A1C", size = 2) +
+  geom_point(color = "#A50F15", size = 1.5) +
+  labs(
+    title = "Queda Acelerada nas Taxas de Resposta",
+    x = "Ano",
+    y = "Taxa de Resposta"
+  ) +
+  scale_y_continuous(labels = percent, limits = c(0, 1)) +
+  theme_minimal(base_size = 16) +
+  theme(plot.title = element_text(face = "bold", size = 20))
+```
+
+**Resultado:**
+* **`r taxa_inicial`% em 1973** → **`r taxa_final`% em 2023****Redução de `r round((taxa_inicial - taxa_final) / taxa_inicial * 100, 1)`%** em 50 anos
+
+---
+
+## **Impacto na Qualidade das Estimativas**
+```{r slide2, fig.height=5, fig.width=8}
+dados_vies <- resultados %>%
+  select(ano, vies_simples, vies_regressao) %>%
+  pivot_longer(cols = c(vies_simples, vies_regressao), 
+               names_to = "estimador", values_to = "vies") %>%
+  mutate(estimador = case_when(
+    estimador == "vies_simples" ~ "Media Simples",  # SEM ACENTO
+    estimador == "vies_regressao" ~ "Regressao (GREG)"  # SEM ACENTO
+  ))
+
+ggplot(dados_vies, aes(x = ano, y = vies, color = estimador)) +
+  geom_line(size = 1.5) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black", size = 1) +
+  labs(
+    title = "Comparacao do Vies: Metodo Tradicional vs GREG",  # SEM ACENTOS
+    x = "Ano",
+    y = "Vies (Estimativa - Valor Real)",  # SEM ACENTO
+    color = "Metodo"  # SEM ACENTO
+  ) +
+  theme_minimal(base_size = 16) +
+  scale_color_manual(values = c("#E41A1C", "#377EB8")) +
+  theme(plot.title = element_text(face = "bold", size = 20))
+
+```
+
+**Conclusão:**
+**GREG mostra viés consistentemente menor** que o método tradicional
+
+---
+
+## **Métodos de Estimação ao Longo do Tempo**
+```{r}
+dados_medias <- resultados %>%
+  select(ano, media_verdadeira, media_simples, media_regressao) %>%
+  pivot_longer(cols = c(media_verdadeira, media_simples, media_regressao), 
+               names_to = "tipo", values_to = "valor") %>%
+  mutate(tipo = case_when(
+    tipo == "media_verdadeira" ~ "Valor Real",
+    tipo == "media_simples" ~ "Media Simples",
+    tipo == "media_regressao" ~ "Regressao (GREG)"
+  ))
+
+ggplot(dados_medias, aes(x = ano, y = valor, color = tipo)) +
+  geom_line(size = 1.5) +
+  labs(
+    title = "Evolucao das Estimativas por Metodo",
+    x = "Ano",
+    y = "Valor Estimado",
+    color = "Metodo"
+  ) +
+  theme_minimal(base_size = 16) +
+  scale_color_manual(values = c("#4DAF4A", "#E41A1C", "#377EB8")) +
+  theme(plot.title = element_text(face = "bold", size = 20))
+```
+
+**Observação:**
+**GREG segue mais de perto o valor real** ao longo de todo o período
+
+---
+
+## **Análise por Década: A Superioridade Crescente do GREG**
+
+
+```{r}
+library(knitr)
+library(kableExtra) 
+
+resumo_decadas <- resultados %>%
+  mutate(decada = floor(ano / 10) * 10) %>%
+  group_by(decada) %>%
+  summarise(
+    `Taxa Resposta Média` = paste0(round(mean(taxa_resposta) * 100, 0), "%"),
+    `VMA Simples` = round(mean(abs(vies_simples), na.rm = TRUE), 3),
+    `VMA GREG` = round(mean(abs(vies_regressao), na.rm = TRUE), 3),
+    `Redução no VMA` = paste0(round((mean(abs(vies_simples), na.rm = TRUE) - 
+                                 mean(abs(vies_regressao), na.rm = TRUE)) / 
+                                mean(abs(vies_simples), na.rm = TRUE) * 100, 1), "%")
+  )
+resumo_decadas %>%
+  kbl(
+    caption = "Tabela 1: Desempenho dos Estimadores por Década",
+    col.names = c("Década", "Taxa de Resposta Média", "Viés Médio Absoluto (VMA) Simples", 
+                  "Viés Médio Absoluto (VMA) GREG", "Melhoria do GREG vs. Simples"),
+    align = c('c', 'c', 'r', 'r', 'r') # Alinhamento das colunas
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"), # Estilo visual (se for HTML)
+    full_width = F # Tabela não ocupa toda a largura
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#D3D3D3") # Cabeçalho em negrito e cinza
+
+```
+
+---
+
+## **Principais Conclusões**
+
+**1. Crise de Resposta** 
+**Taxas caíram dramaticamente**, exigindo **métodos mais robustos**
+
+**2. Superioridade do GREG** 
+**Redução média de `r melhoramento`% no viés** vs método tradicional
+
+**3. Adaptação Necessária** 
+Métodos tradicionais tornam-se **inadequados** com baixa resposta
+
+**4. Dados Auxiliares Cruciais** 
+GREG aproveita **informações adicionais** para melhor precisão
+
+---
+
+## **Estimação de Variância: Revolução Computacional**
+
+**A Necessidade da Mudança**:  
+Com o desenvolvimento de **estimadores complexos** (como o GREG) e o uso de **desenhos amostrais sofisticados** (estratificação, múltiplos estágios), as fórmulas matemáticas para calcular a variância (erro) tornaram-se **intratáveis** ou impossíveis de derivar.  
+O avanço do **poder computacional** na virada do milênio foi a solução. 
+
+* **Evolução Histórica dos Métodos de Replicação**:  
+**1970s**: Fórmulas analíticas (Precisas, mas limitadas a **desenhos simples**.)  
+**1990s**: Jackknife e Balanced Half-Samples (Primeiros métodos de replicação usados em **surveys complexos**.)  
+**2000s+**: **Bootstrap e Replicação** (Tornou-se o **padrão**, capaz de estimar a variância para qualquer estatística (média, quartil, regressão).)
+
+* **Vantagens dos Métodos Modernos (A Democra tização da Variância)**:  
+**Universalidade**: Aplicáveis a qualquer **desenho amostral** complexo e a qualquer **estimador** (linear ou não-linear).  
+**Simplicidade: Não exigem derivação matemática complexa** para cada novo estimador.  
+**Acessibilidade**: Amplamente implementados em **software estatístico acessível** (R, Python).  
+**Robustez**: Oferecem estimativas de variância mais **estáveis e confiáveis**.
+---
+
+## **Amostras Não-Probabilísticas: O Novo Paradigma de Velocidade vs. Viés**
+
+* **Cenário Atual: A Explosão da Não-Probabilidade**  
+**Impulsionadores**: Pressão por **custos menores**, demanda por **velocidade** na coleta e o surgimento de novas **fontes de dados** (painéis online, dados de mídia social, etc.).  
+**Definição**: A probabilidade de seleção de um indivíduo é **desconhecida**, dependendo da autoseleção ou da disponibilidade do pesquisador.
+
+* **O Principal Desafio: Viés de Seleção**  
+**Problema**: A amostra não-probabilística é inerentemente **não-representativa**. As pessoas que se autoselecionam (ex: para um painel online) são estatisticamente diferentes da população.  
+**Consequência**: Resultados altamente sujeitos a viés de seleção desconhecido, comprometendo a inferência estatística.
+
+* **Soluções Emergentes: A Estatística ao Resgate**  
+Para que essas amostras sejam úteis, é obrigatório aplicar ajustes para mitigar o viés:    
+**Ponderação por Escore de Propensão (Propensity Score Weighting)**: Técnica que tenta "calibrar" a amostra não-probabilística para que ela se pareça com a população em termos de variáveis auxiliares (o mesmo princípio de ajuste do GREG).  
+**Métodos Doubly Robust**: Abordagens que combinam modelagem (ex: regressão) e ponderação, oferecendo maior proteção contra erros de especificação do modelo.  
+**Combinação Híbrida**: Integração estatística de dados de amostras não-probabilísticas com uma pequena, mas rigorosa, amostra probabilística.
+
+
+
+---
+
+## **Tendências Futuras: A Amostragem na Era da Integração de Dados**  
+* **O Futuro Imediato**: A amostragem evolui para ser menos dependente de um único survey e mais focada na **combinação inteligente** de múltiplas fontes. 
+
+* **1. Integração de Múltiplas Fontes de Dados (Hybrid Data)**:  
+O paradigma muda de "coleta pura" para "integração".  
+**Objetivo**: Combinar a **qualidade inferencial** das amostras probabilísticas (caras) com o **volume/velocidade** das amostras não-probabilísticas e dados administrativos (Big Data).  
+**Desafio Estatístico**: Desenvolver modelos que equilibrem o **viés** (de fontes não-probabilísticas) e a **variância** (de pequenas amostras probabilísticas).  
+
+* **2. Designs Adaptativos e Personalização (Adaptive Survey Designs)**:  
+**Conceito**: A estratégia de coleta de dados se ajusta em **tempo real** (e.g., mudando de modo telefônico para online) com base em métricas de custo ou desempenho (taxa de resposta).  
+**Objetivo**: Otimizar recursos e aumentar a resposta em subgrupos específicos, minimizando o esforço total.
+
+* **3. Automação e Machine Learning (ML)**:  
+Uso de algoritmos de ML para automatizar tarefas complexas, como:  
+Classificação de dados auxiliares.  
+Previsão de propensão à resposta (para alimentar designs adaptativos).  
+Identificação de viés em amostras não-probabilísticas.  
+
+Isso permite a implementação em larga escala de estimadores como o GREG e técnicas de ponderação.
+
+
+
+---
+
+## **Recomendações Práticas: O Caminho a Seguir na Amostragem**
+
+* **1. Para Pesquisadores e Estatísticos de Survey** 
+* **Adotar o Paradigma Model-Assisted**:  
+**Tornar o GREG (Estimador de Regressão Generalizada) o padrão**: Utilizar estimadores assistidos por modelo para corrigir o viés da não-resposta e da não-cobertura.  
+**Coletar Variáveis Auxiliares (X)**: Priorizar a obtenção de variáveis externas e correlacionadas com a variável de interesse ($Y$) para maximizar a eficácia do GREG.
+* **Utilizar Métodos de Replicação**:  
+Implementar rotineiramente métodos como **Bootstrap** e **Jackknife** para estimar a variância, especialmente em desenhos complexos.  
+**Vantagem**: Evita erros de derivação e simplifica a implementação em software.
+
+* **2. Para a Agenda de Pesquisa Futura**  
+* **Abraçar a Integração Híbrida**:  
+Focar no desenvolvimento de frameworks robustos para combinar **amostras probabilísticas e não-probabilísticas** (métodos Doubly Robust).  
+* **Otimizar a Coleta**:  
+**Investir em Designs Adaptativos**: Desenvolver e implementar estratégias de campo que se ajustem em tempo real para otimizar a alocação de recursos e atingir subgrupos com baixa resposta.
+
+---
+
+## **Resumo Executivo**
+
+**Problema:**  
+O **Declínio acentuado na Taxa de Resposta** (queda de 60.7% em 50 anos) tornou os métodos tradicionais (Média Simples) **inadequados**, gerando um viés crescente nas estimativas.
+
+**Solução:**  
+A resposta estatística reside na **Amostragem Assistida por Modelo**. O **GREG** utiliza **dados auxiliares** ($X$) para ajustar os pesos e corrigir o viés da não-resposta.
+
+**Resultado:**  
+O GREG demonstrou uma Superioridade Incontestável, alcançando uma redução média de**`r melhoramento`% de redução no viés** comparado a métodos tradicionais
+
+**Tendência**  
+A amostragem exige **Integração de Dados** e o uso de métodos computacionais (Bootstrap, ML) para garantir a precisão em um ambiente de coletas cada vez mais complexas.
+---
+
+## **Obrigado!**
+
+
+**Trabalho acadêmico**  
+**Disciplina: Técnicas de Amostragem**
+
+**Baseado em:**  
+**"Survey sampling during the last 50 years"**  
+*(de Waal & Scholtus, 2023)*

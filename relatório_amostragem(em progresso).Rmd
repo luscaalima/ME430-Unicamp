@@ -1,0 +1,220 @@
+---
+title: "Evolução das Técnicas de Amostragem (1975-2025)"
+author: '238719'
+date: "2025-10-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Configuração inicial - não aparece no relatório
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(scales)
+```
+## **RESUMO EXECUTIVO**
+
+**Este trabalho analisa a evolução das técnicas de amostragem ao longo dos últimos 50 anos (1975-2025),** simulando como o **declínio nas taxas de resposta** e o **desenvolvimento de métodos estatísticos mais sofisticados** impactaram a **qualidade das estimativas** em pesquisas por amostragem.
+
+---
+
+## **INTRODUÇÃO**
+
+**Baseado no artigo "Survey sampling during the last 50 years"**, este estudo simula a **evolução histórica dos métodos de amostragem**, com foco em:
+
+### **PRINCIPAIS TEMAS ANALISADOS:**
+-  **Declínio das taxas de resposta** ao longo do tempo  
+-  **Desenvolvimento de estimadores assistidos por modelo (GREG)**
+-  **Impacto na qualidade das estimativas**
+-  **Evolução da estimação de variância**
+-  **Crescimento das amostras não-probabilísticas**
+
+---
+
+##  **METODOLOGIA**
+
+### **POPULAÇÃO E AMOSTRA**
+- **Período**: 1975-2025 (50 anos)
+- **População simulada**: 5.000 indivíduos por ano
+- **Amostra alvo**: 300 indivíduos por ano
+
+### **VARIÁVEIS ANALISADAS:**
+- **X** (variável auxiliar, ex: renda)
+- **Y** (variável de interesse, correlacionada com X)
+
+### **MÉTODOS DE ESTIMAÇÃO COMPARADOS:**
+-  **Média Simples**: Estimador tradicional
+-  **Regressão (GREG)**: Estimador assistido por modelo
+
+---
+
+##  **RESULTADOS E ANÁLISE**
+
+### **1.  EVOLUÇÃO DA TAXA DE RESPOSTA**
+
+```{r}
+# Carregar resultados da simulação
+resultados <- read.csv("C:/Users/crist/Documents/Trabalho_Amostragem/resultados_50_anos.csv")
+
+ggplot(resultados, aes(x = ano, y = taxa_resposta)) +
+  geom_line(color = "red", size = 1.5) +
+  geom_point(color = "darkred", size = 1) +
+  labs(
+    title = "Figura 1: Evolução da Taxa de Resposta (1975-2025)",
+    x = "Ano",
+    y = "Taxa de Resposta"
+  ) +
+  scale_y_continuous(labels = percent) +
+  theme_minimal()
+```
+**ANÁLISE**: Observa-se um **declínio consistente nas taxas de resposta**, indo de aproximadamente **`r round(resultados$taxa_resposta[1]*100, 1)`% em 1975** para cerca de **`r round(resultados$taxa_resposta[nrow(resultados)]*100, 1)`% em 2025**.
+
+### **2.  COMPARAÇÃO DO VIÉS DOS ESTIMADORES**
+
+2. Comparação do Viés dos Estimadores
+```{r}
+dados_vies <- resultados %>%
+  select(ano, vies_simples, vies_regressao) %>%
+  pivot_longer(cols = c(vies_simples, vies_regressao), 
+               names_to = "estimador", values_to = "vies") %>%
+  mutate(estimador = case_when(
+    estimador == "vies_simples" ~ "Média Simples",
+    estimador == "vies_regressao" ~ "Regressão (GREG)"
+  ))
+
+ggplot(dados_vies, aes(x = ano, y = vies, color = estimador)) +
+  geom_line(size = 1) +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "black") +
+  labs(
+    title = "Figura 2: Comparação do Viés dos Estimadores",
+    x = "Ano",
+    y = "Viés (Estimativa - Valor Real)",
+    color = "Método"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+**ANÁLISE**: O **estimador GREG demonstra viés significativamente menor** ao longo de todo o período analisado, comprovando sua **superioridade estatística**.
+
+### **3.  MÉTODOS DE ESTIMAÇÃO AO LONGO DO TEMPO**
+```{r}
+dados_medias <- resultados %>%
+  select(ano, media_verdadeira, media_simples, media_regressao) %>%
+  pivot_longer(cols = c(media_verdadeira, media_simples, media_regressao), 
+               names_to = "tipo", values_to = "valor") %>%
+  mutate(tipo = case_when(
+    tipo == "media_verdadeira" ~ "Valor Real",
+    tipo == "media_simples" ~ "Média Simples",
+    tipo == "media_regressao" ~ "Regressão (GREG)"
+  ))
+
+ggplot(dados_medias, aes(x = ano, y = valor, color = tipo)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Figura 3: Comparação dos Métodos de Estimação",
+    x = "Ano",
+    y = "Valor Estimado",
+    color = "Método"
+  ) +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+```
+**ANÁLISE**: O **GREG acompanha mais de perto o valor real**, enquanto a **média simples apresenta desvios consistentes**.
+
+---
+
+##  **ANÁLISE POR DÉCADA**
+```{r}
+resumo_decadas <- resultados %>%
+  mutate(decada = floor(ano / 10) * 10) %>%
+  group_by(decada) %>%
+  summarise(
+    Taxa_Resposta_Media = paste0(round(mean(taxa_resposta) * 100, 1), "%"),
+    Vies_Medio_Simples = round(mean(abs(vies_simples), na.rm = TRUE), 3),
+    Vies_Medio_GREG = round(mean(abs(vies_regressao), na.rm = TRUE), 3),
+    Melhoramento = paste0(round((mean(abs(vies_simples), na.rm = TRUE) - 
+                                 mean(abs(vies_regressao), na.rm = TRUE)) / 
+                                mean(abs(vies_simples), na.rm = TRUE) * 100, 1), "%")
+  )
+
+knitr::kable(resumo_decadas, caption = "Tabela 1: Métricas por Década")
+```
+**ANÁLISE**: A **efetividade do GREG aumenta progressivamente** em cada década, com **melhoramento médio de `r round((mean(abs(resultados$vies_simples), na.rm = TRUE) - mean(abs(resultados$vies_regressao), na.rm = TRUE)) / mean(abs(resultados$vies_simples), na.rm = TRUE) * 100, 1)`%** em relação ao método tradicional.
+
+---
+
+##  **PRINCIPAIS CONCLUSÕES**
+
+### **DECLÍNIO ACELERADO**
+As **taxas de resposta caíram significativamente**, passando de cerca de **70% na década de 1970** para aproximadamente **25% em 2025**.
+
+### **SUPERIORIDADE DO GREG**
+O **estimador GREG mostrou-se consistentemente superior**, com **redução média de `r round((mean(abs(resultados$vies_simples), na.rm = TRUE) - mean(abs(resultados$vies_regressao), na.rm = TRUE)) / mean(abs(resultados$vies_simples), na.rm = TRUE) * 100, 1)`% no viés** comparado à média simples.
+
+### **IMPORTÂNCIA DOS MÉTODOS MODERNOS**
+Com o **aumento da não-resposta**, métodos tradicionais tornam-se **progressivamente mais viesados**, enquanto **métodos assistidos por modelo mantêm melhor precisão**
+
+---
+
+##  Estimação de Variância por Métodos de Replicação
+
+A evolução computacional dos últimos 50 anos revolucionou a estimação de variância em amostragem. Enquanto nas décadas iniciais dependíamos de fórmulas analíticas complexas e limitadas a desenhos amostrais simples, o aumento do poder computacional permitiu o desenvolvimento de **métodos de replicação** como:
+
+- **Bootstrap**: Reamostragem para estimar distribuição amostral
+- **Jackknife**: Eliminação sistemática de observações
+- **Balanced half-samples**: Divisão balanceada da amostra
+
+Estes métodos são particularmente valiosos para desenhos amostrais complexos, onde derivações analíticas seriam impraticáveis. Sua implementação em softwares como R (pacote `survey`) democratizou o acesso a estimações de variância robustas.
+
+##  Amostras Não-Probabilísticas: Desafios e Oportunidades
+
+O panorama atual da amostragem é marcado pelo crescimento explosivo das **amostras não-probabilísticas**:
+
+**Fontes Emergentes:**
+-  **Big Data** e registros administrativos
+-  **Pesquisas online** opt-in
+-  **Dados digitais** de plataformas
+
+**Vantagens:**
+-  **Custo reduzido** comparado a pesquisas tradicionais
+-  **Velocidade** na obtenção dos dados
+-  **Grandes volumes** de informação
+
+**Desafios Críticos:**
+-  **Viés de seleção** desconhecido e potencialmente grande
+-  **Probabilidades de inclusão** desconhecidas
+-  **Dificuldade** em validar representatividade
+
+**Abordagens Promissoras:**
+-  **Combinação** com amostras probabilísticas
+-  **Métodos doubly robust** para correção de viés
+-  **Estimação** de probabilidades de inclusão
+-  **Ponderação** por escore de propensão
+
+##  Tendências Futuras e Considerações Finais
+
+A evolução da amostragem nos últimos 50 anos aponta para direções claras:
+
+### **Transformações em Curso:**
+1. **Integração de Fontes**: Combinação de dados probabilísticos e não-probabilísticos
+2. **Automação**: Processos amostrais cada vez mais automatizados
+3. **Personalização**: Desenhos adaptativos baseados em aprendizado de máquina
+4. **Abordagens Híbridas**: Métodos que transcendem a dicotomia probabilístico/não-probabilístico
+
+### **Lições dos Últimos 50 Anos:**
+- A **adaptabilidade** é essencial frente a mudanças tecnológicas e sociais
+- Métodos **assistidos por modelo** comprovaram seu valor na prática
+- O **declínio das taxas de resposta** exigiu inovação constante
+- A **revolução computacional** democratizou métodos sofisticados
+
+### **Visão para o Futuro:**
+A amostragem continuará evoluindo, com ênfase crescente em métodos robustos para integração de dados múltiplos, abordagens que balanceiem viés e variância, e frameworks que acomodem a riqueza de novas fontes de dados enquanto mantêm rigor inferencial.
+
+**Referências**
+de Waal, T., & Scholtus, S. (2023). Survey sampling during the last 50 years. The Survey Statistician.
+
+Lumley, T. (2010). Complex Surveys: A Guide to Analysis Using R. Wiley.
+
+Trabalho acadêmico desenvolvido para a disciplina Técnicas de Amostragem.
+
